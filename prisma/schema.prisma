@@ -1,0 +1,213 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Guild {
+  id                String             @id
+  name              String
+  prefix            String             @default("!")
+  settings          Json               @default("{}")
+  antiNukeEnabled   Boolean            @default(true)
+  antiNukeSettings  Json               @default("{}")
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  
+  // Relations
+  moderationLogs    ModerationLog[]
+  tickets           Ticket[]
+  roleSnapshots     RoleSnapshot[]
+  vanityLogs        VanityLog[]
+  musicQueues       MusicQueue[]
+  userProfiles      UserProfile[]
+  birthdays         Birthday[]
+  
+  @@map("guilds")
+}
+
+model User {
+  id            String      @id
+  username      String
+  discriminator String?
+  avatar        String?
+  globalName    String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  
+  // Relations
+  moderationLogs       ModerationLog[]   @relation("ModeratorLogs")
+  targetedLogs         ModerationLog[]   @relation("TargetLogs")
+  tickets              Ticket[]
+  profiles             UserProfile[]
+  birthdays            Birthday[]
+  vanityLogs           VanityLog[]
+  
+  @@map("users")
+}
+
+model ModerationLog {
+  id          String              @id @default(uuid())
+  guildId     String
+  action      ModerationAction
+  targetId    String
+  moderatorId String
+  reason      String?
+  metadata    Json                @default("{}")
+  expiresAt   DateTime?
+  createdAt   DateTime            @default(now())
+  
+  // Relations
+  guild       Guild               @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  target      User                @relation("TargetLogs", fields: [targetId], references: [id])
+  moderator   User                @relation("ModeratorLogs", fields: [moderatorId], references: [id])
+  
+  @@map("moderation_logs")
+}
+
+model Ticket {
+  id            String        @id @default(uuid())
+  guildId       String
+  userId        String
+  channelId     String?
+  threadId      String?
+  category      String?
+  subject       String
+  status        TicketStatus  @default(OPEN)
+  staffIds      String[]      @default([])
+  transcriptUrl String?
+  metadata      Json          @default("{}")
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  closedAt      DateTime?
+  
+  // Relations
+  guild         Guild         @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  user          User          @relation(fields: [userId], references: [id])
+  
+  @@map("tickets")
+}
+
+model RoleSnapshot {
+  id        String    @id @default(uuid())
+  guildId   String
+  snapshot  Json
+  takenAt   DateTime  @default(now())
+  
+  // Relations
+  guild     Guild     @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  
+  @@map("role_snapshots")
+}
+
+model VanityLog {
+  id            String    @id @default(uuid())
+  guildId       String
+  previousVanity String?
+  newVanity     String?
+  actorId       String
+  createdAt     DateTime  @default(now())
+  
+  // Relations
+  guild         Guild     @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  actor         User      @relation(fields: [actorId], references: [id])
+  
+  @@map("vanity_logs")
+}
+
+model MusicQueue {
+  id            String    @id @default(uuid())
+  guildId       String    @unique
+  queue         Json      @default("[]")
+  currentTrack  Json?
+  volume        Float     @default(1.0)
+  loop          String    @default("none") // none, track, queue
+  shuffle       Boolean   @default(false)
+  settings      Json      @default("{}")
+  updatedAt     DateTime  @updatedAt
+  
+  // Relations
+  guild         Guild     @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  
+  @@map("music_queues")
+}
+
+model UserProfile {
+  id              String    @id @default(uuid())
+  guildId         String
+  userId          String
+  messageCount    Int       @default(0)
+  voiceMinutes    Int       @default(0)
+  xp              Int       @default(0)
+  level           Int       @default(1)
+  bio             String?
+  badges          String[]  @default([])
+  lastSeen        DateTime  @default(now())
+  optOut          Boolean   @default(false)
+  
+  // Relations
+  guild           Guild     @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  user            User      @relation(fields: [userId], references: [id])
+  
+  @@unique([guildId, userId])
+  @@map("user_profiles")
+}
+
+model Birthday {
+  id        String    @id @default(uuid())
+  guildId   String
+  userId    String
+  month     Int       // 1-12
+  day       Int       // 1-31
+  year      Int?      // Optional birth year
+  timezone  String?
+  optIn     Boolean   @default(true)
+  
+  // Relations
+  guild     Guild     @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id])
+  
+  @@unique([guildId, userId])
+  @@map("birthdays")
+}
+
+model AntiNukeWhitelist {
+  id        String    @id @default(uuid())
+  guildId   String
+  userId    String
+  reason    String?
+  createdAt DateTime  @default(now())
+  
+  @@unique([guildId, userId])
+  @@map("anti_nuke_whitelist")
+}
+
+enum ModerationAction {
+  BAN
+  UNBAN
+  KICK
+  MUTE
+  UNMUTE
+  TIMEOUT
+  UNTIMEOUT
+  WARN
+  NOTE
+  ROLE_ADD
+  ROLE_REMOVE
+  NICKNAME_CHANGE
+  PURGE
+}
+
+enum TicketStatus {
+  OPEN
+  PENDING
+  RESOLVED
+  CLOSED
+  ARCHIVED
+}

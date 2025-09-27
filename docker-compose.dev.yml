@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: discord-bot-db-dev
+    environment:
+      POSTGRES_DB: discord_bot_dev
+      POSTGRES_USER: bot_user
+      POSTGRES_PASSWORD: dev_password
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    networks:
+      - bot-dev-network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: discord-bot-redis-dev
+    ports:
+      - "6380:6379"
+    networks:
+      - bot-dev-network
+
+  # Development Bot
+  bot-dev:
+    build:
+      context: .
+      target: dev
+    container_name: discord-bot-dev
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://bot_user:dev_password@postgres:5432/discord_bot_dev
+      REDIS_URL: redis://redis:6379
+      DISCORD_TOKEN: ${DISCORD_TOKEN}
+      DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID}
+      DISCORD_CLIENT_SECRET: ${DISCORD_CLIENT_SECRET}
+      SESSION_SECRET: dev_session_secret
+      JWT_SECRET: dev_jwt_secret
+      DEFAULT_PREFIX: "!"
+      OWNER_IDS: ${OWNER_IDS}
+      PORT: 3000
+      LOG_LEVEL: debug
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - bot_dev_logs:/app/logs
+    ports:
+      - "3000:3000"
+    networks:
+      - bot-dev-network
+    depends_on:
+      - postgres
+      - redis
+    command: npm run dev
+
+volumes:
+  postgres_dev_data:
+  bot_dev_logs:
+
+networks:
+  bot-dev-network:
+    driver: bridge
