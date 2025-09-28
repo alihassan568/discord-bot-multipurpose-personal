@@ -219,7 +219,7 @@ docker-compose -f docker-compose.dev.yml down
 **Bot doesn't respond to commands**
 - Check bot permissions in Discord server
 - Ensure bot has "Use Slash Commands" permission
-- Check console for error messages
+- Check console for error message
 
 ### Getting Help
 

@@ -1,166 +1,151 @@
-import { SlashCommandBuilder, ChatInputCommandInteraction, EmbedBuilder } from 'discord.js';
+import {
+    SlashCommandBuilder,
+    ChatInputCommandInteraction,
+    EmbedBuilder,
+    ActionRowBuilder,
+    StringSelectMenuBuilder,
+    StringSelectMenuInteraction,
+    ComponentType,
+} from 'discord.js';
 import { Command } from '../../types';
 
 const command: Command = {
     data: new SlashCommandBuilder()
         .setName('help')
-        .setDescription('Show all available commands and features')
-        .addStringOption(option =>
-            option
-                .setName('category')
-                .setDescription('Show commands from a specific category')
-                .addChoices(
-                    { name: 'Moderation', value: 'moderation' },
-                    { name: 'Music', value: 'music' },
-                    { name: 'Tickets', value: 'tickets' },
-                    { name: 'Fun', value: 'fun' },
-                    { name: 'Utility', value: 'utility' },
-                )
-        ) as SlashCommandBuilder,
+        .setDescription('Show all available commands and features'),
 
     async execute(interaction: ChatInputCommandInteraction) {
-        const category = interaction.options.getString('category');
+        const embed = new EmbedBuilder()
+            .setTitle('🤖 Bot Help Menu')
+            .setDescription('Select a category from the dropdown below to view detailed commands.')
+            .setColor(0x5865f2)
+            .addFields([
+                { name: '🛡️ Moderation', value: 'Ban, kick, mute, warn, clear messages', inline: true },
+                { name: '🎵 Music', value: 'Play music, manage queue, volume, and more', inline: true },
+                { name: '🎫 Tickets', value: 'Support ticket system with transcripts', inline: true },
+                { name: '🎉 Fun', value: 'Games, memes, jokes, and more', inline: true },
+                { name: '🔧 Utility', value: 'Server info, user info, stats, and setup', inline: true },
+            ])
+            .setFooter({ text: 'Use the dropdown below to navigate categories' })
+            .setTimestamp();
 
-        if (category) {
-            await showCategoryHelp(interaction, category);
-        } else {
-            await showGeneralHelp(interaction);
-        }
+        const selectMenu = new StringSelectMenuBuilder()
+            .setCustomId('help-menu')
+            .setPlaceholder('📂 Select a category')
+            .addOptions([
+                { label: 'Moderation', value: 'moderation', description: 'Ban, kick, mute, warn...', emoji: '🛡️' },
+                { label: 'Music', value: 'music', description: 'Play songs, queue system, volume...', emoji: '🎵' },
+                { label: 'Tickets', value: 'tickets', description: 'Support ticket system', emoji: '🎫' },
+                { label: 'Fun', value: 'fun', description: 'Games, memes, and fun stuff', emoji: '🎉' },
+                { label: 'Utility', value: 'utility', description: 'Server info, stats, setup...', emoji: '🔧' },
+            ]);
+
+        const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(selectMenu);
+
+        await interaction.reply({
+            embeds: [embed],
+            components: [row],
+            ephemeral: true,
+        });
+
+        const msg = await interaction.fetchReply();
+
+        const collector = msg.createMessageComponentCollector({
+            componentType: ComponentType.StringSelect,
+            time: 60_000, 
+        });
+
+        collector.on('collect', async (i: StringSelectMenuInteraction) => {
+            if (i.customId !== 'help-menu') return;
+
+            const category = i.values[0];
+            const categoryEmbed = getCategoryEmbed(category as any);
+
+            await i.update({
+                embeds: [categoryEmbed],
+                components: [row],
+            });
+        });
+
+        collector.on('end', async () => {
+            const disabledRow = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
+                selectMenu.setDisabled(true),
+            );
+
+            await interaction.editReply({
+                components: [disabledRow],
+            });
+        });
     },
 };
 
-async function showGeneralHelp(interaction: ChatInputCommandInteraction): Promise<void> {
-    const embed = new EmbedBuilder()
-        .setTitle('🤖 Bot Help - All Commands')
-        .setDescription('Here are all the available command categories. Use `/help category:<name>` for detailed commands in each category.')
-        .setColor(0x5865f2)
-        .addFields([
-            {
-                name: '🛡️ Moderation',
-                value: '`/help category:moderation`\nBan, kick, mute, and other moderation tools',
-                inline: true,
-            },
-            {
-                name: '🎵 Music',
-                value: '`/help category:music`\nPlay music, manage queue, and audio controls',
-                inline: true,
-            },
-            {
-                name: '🎫 Tickets',
-                value: '`/help category:tickets`\nSupport ticket system for staff and users',
-                inline: true,
-            },
-            {
-                name: '🎉 Fun',
-                value: '`/help category:fun`\n8ball, games, memes, and entertainment',
-                inline: true,
-            },
-            {
-                name: '🔧 Utility',
-                value: '`/help category:utility`\nServer info, user profiles, and utilities',
-                inline: true,
-            },
-            {
-                name: '⚙️ Setup',
-                value: '`/setup` - Configure bot settings for your server',
-                inline: true,
-            },
-        ])
-        .setFooter({
-            text: 'Use /setup to configure the bot for your server',
-        })
-        .setTimestamp();
-
-    await interaction.reply({ embeds: [embed] });
-}
-
-async function showCategoryHelp(interaction: ChatInputCommandInteraction, category: string): Promise<void> {
+function getCategoryEmbed(category: string): EmbedBuilder {
     const embeds: Record<string, EmbedBuilder> = {
         moderation: new EmbedBuilder()
             .setTitle('🛡️ Moderation Commands')
             .setColor(0xff4444)
-            .setDescription('Powerful moderation tools with logging and auto-moderation')
+            .setDescription('Moderation tools for managing your server')
             .addFields([
-                { name: '/ban <user> [reason] [duration]', value: 'Ban a user from the server', inline: false },
-                { name: '/kick <user> [reason]', value: 'Kick a user from the server', inline: false },
-                { name: '/mute <user> [reason] [duration]', value: 'Mute a user (timeout or role)', inline: false },
-                { name: '/unmute <user>', value: 'Remove mute from a user', inline: false },
-                { name: '/warn <user> <reason>', value: 'Add a warning to a user', inline: false },
-                { name: '/clear <amount> [user]', value: 'Clear messages from channel', inline: false },
-                { name: '/modlogs <user>', value: 'View moderation history for a user', inline: false },
-                { name: '/setup moderation', value: 'Configure moderation settings', inline: false },
+                { name: '/ban', value: 'Ban a user from the server', inline: false },
+                { name: '/kick', value: 'Kick a user from the server', inline: false },
+                { name: '/mute', value: 'Mute a user with timeout or role', inline: false },
+                { name: '/unmute', value: 'Unmute a user', inline: false },
+                { name: '/warn', value: 'Warn a user', inline: false },
+                { name: '/clear', value: 'Clear messages', inline: false },
+                { name: '/modlogs', value: 'View moderation logs of a user', inline: false },
             ]),
 
         music: new EmbedBuilder()
             .setTitle('🎵 Music Commands')
             .setColor(0x1db954)
-            .setDescription('High-quality music streaming with queue management')
+            .setDescription('Music streaming & queue management')
             .addFields([
-                { name: '/play <song>', value: 'Play a song or add to queue', inline: false },
+                { name: '/play', value: 'Play a song', inline: false },
                 { name: '/pause', value: 'Pause the current song', inline: false },
-                { name: '/resume', value: 'Resume playback', inline: false },
-                { name: '/skip [amount]', value: 'Skip current song or multiple songs', inline: false },
-                { name: '/queue', value: 'View the music queue', inline: false },
-                { name: '/volume <1-100>', value: 'Set playback volume', inline: false },
-                { name: '/loop <none|track|queue>', value: 'Set loop mode', inline: false },
-                { name: '/shuffle', value: 'Shuffle the queue', inline: false },
-                { name: '/nowplaying', value: 'Show currently playing song', inline: false },
-                { name: '/leave', value: 'Leave voice channel and clear queue', inline: false },
+                { name: '/resume', value: 'Resume music', inline: false },
+                { name: '/skip', value: 'Skip the current track', inline: false },
+                { name: '/queue', value: 'Show current queue', inline: false },
+                { name: '/volume', value: 'Adjust playback volume', inline: false },
             ]),
 
         tickets: new EmbedBuilder()
-            .setTitle('🎫 Ticket System')
+            .setTitle('🎫 Ticket Commands')
             .setColor(0xffa500)
-            .setDescription('Professional support ticket system with transcripts')
+            .setDescription('Support ticket system')
             .addFields([
-                { name: '/ticket create <reason>', value: 'Create a new support ticket', inline: false },
-                { name: '/ticket close [reason]', value: 'Close your ticket', inline: false },
-                { name: '/ticket add <user>', value: 'Add user to ticket (Staff)', inline: false },
-                { name: '/ticket remove <user>', value: 'Remove user from ticket (Staff)', inline: false },
-                { name: '/ticket transcript', value: 'Generate ticket transcript (Staff)', inline: false },
-                { name: '/setup tickets', value: 'Configure ticket settings', inline: false },
+                { name: '/ticket create', value: 'Open a support ticket', inline: false },
+                { name: '/ticket close', value: 'Close your ticket', inline: false },
+                { name: '/ticket add', value: 'Add a user to ticket', inline: false },
+                { name: '/ticket remove', value: 'Remove a user from ticket', inline: false },
+                { name: '/ticket transcript', value: 'Generate ticket transcript', inline: false },
             ]),
 
         fun: new EmbedBuilder()
             .setTitle('🎉 Fun Commands')
             .setColor(0xff69b4)
-            .setDescription('Entertainment and engagement commands')
+            .setDescription('Have fun with these commands')
             .addFields([
-                { name: '/8ball <question>', value: 'Ask the magic 8-ball', inline: false },
+                { name: '/8ball', value: 'Ask the magic 8-ball', inline: false },
                 { name: '/coinflip', value: 'Flip a coin', inline: false },
-                { name: '/roll [sides]', value: 'Roll a dice', inline: false },
                 { name: '/meme', value: 'Get a random meme', inline: false },
                 { name: '/joke', value: 'Get a random joke', inline: false },
-                { name: '/trivia', value: 'Start a trivia game', inline: false },
-                { name: '/profile [user]', value: 'View user profile and stats', inline: false },
-                { name: '/birthday set <date>', value: 'Set your birthday', inline: false },
+                { name: '/trivia', value: 'Play trivia', inline: false },
             ]),
 
         utility: new EmbedBuilder()
             .setTitle('🔧 Utility Commands')
             .setColor(0x36393f)
-            .setDescription('Server management and information tools')
+            .setDescription('Server and bot utilities')
             .addFields([
-                { name: '/serverinfo', value: 'Show server information', inline: false },
-                { name: '/userinfo [user]', value: 'Show user information', inline: false },
-                { name: '/roleinfo <role>', value: 'Show role information', inline: false },
-                { name: '/avatar [user]', value: 'Get user avatar', inline: false },
+                { name: '/serverinfo', value: 'Show server info', inline: false },
+                { name: '/userinfo', value: 'Show user info', inline: false },
+                { name: '/avatar', value: 'Get user avatar', inline: false },
                 { name: '/ping', value: 'Check bot latency', inline: false },
-                { name: '/stats', value: 'Show bot statistics', inline: false },
-                { name: '/setup', value: 'Configure bot settings', inline: false },
+                { name: '/stats', value: 'View bot statistics', inline: false },
             ]),
     };
 
-    const embed = embeds[category];
-    if (!embed) {
-        await interaction.reply({
-            content: 'Invalid category! Use `/help` to see all categories.',
-            ephemeral: true,
-        });
-        return;
-    }
-
-    await interaction.reply({ embeds: [embed] });
+    return embeds[category] ?? new EmbedBuilder().setDescription('❌ Invalid category');
 }
 
 export default command;

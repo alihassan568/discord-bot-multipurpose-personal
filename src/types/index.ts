@@ -16,6 +16,12 @@ export interface BotClient extends Client {
     rateLimiter: any; // RateLimiter type
 }
 
+export interface category {
+    name: string;
+    value: string;
+    inline: boolean;
+}
+
 export interface Command {
     data: any; // SlashCommandBuilder or any of its variants
     permissions?: PermissionResolvable[];
