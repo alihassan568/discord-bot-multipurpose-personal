@@ -18,7 +18,6 @@ const command = {
         const client = interaction.client as BotClient;
 
         try {
-
             const guild = interaction.guild;
             if (!guild) {
                 await interaction.reply({
