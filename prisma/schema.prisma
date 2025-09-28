@@ -6,17 +6,17 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider = "sqlite"
+  url      = "file:./dev.db"
 }
 
 model Guild {
   id                String             @id
   name              String
   prefix            String             @default("!")
-  settings          Json               @default("{}")
+  settings          String             @default("{}")
   antiNukeEnabled   Boolean            @default(true)
-  antiNukeSettings  Json               @default("{}")
+  antiNukeSettings  String             @default("{}")
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
   
@@ -28,6 +28,7 @@ model Guild {
   musicQueues       MusicQueue[]
   userProfiles      UserProfile[]
   birthdays         Birthday[]
+  extraOwners       ExtraOwner[]
   
   @@map("guilds")
 }
@@ -53,13 +54,13 @@ model User {
 }
 
 model ModerationLog {
-  id          String              @id @default(uuid())
+  id          String              @id @default(cuid())
   guildId     String
-  action      ModerationAction
+  action      String              // BAN, UNBAN, KICK, MUTE, etc.
   targetId    String
   moderatorId String
   reason      String?
-  metadata    Json                @default("{}")
+  metadata    String              @default("{}")
   expiresAt   DateTime?
   createdAt   DateTime            @default(now())
   
@@ -72,17 +73,17 @@ model ModerationLog {
 }
 
 model Ticket {
-  id            String        @id @default(uuid())
+  id            String        @id @default(cuid())
   guildId       String
   userId        String
   channelId     String?
   threadId      String?
   category      String?
   subject       String
-  status        TicketStatus  @default(OPEN)
-  staffIds      String[]      @default([])
+  status        String        @default("OPEN")
+  staffIds      String        @default("")  // Comma-separated IDs
   transcriptUrl String?
-  metadata      Json          @default("{}")
+  metadata      String        @default("{}")
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   closedAt      DateTime?
@@ -95,9 +96,9 @@ model Ticket {
 }
 
 model RoleSnapshot {
-  id        String    @id @default(uuid())
+  id        String    @id @default(cuid())
   guildId   String
-  snapshot  Json
+  snapshot  String    // JSON as string
   takenAt   DateTime  @default(now())
   
   // Relations
@@ -107,7 +108,7 @@ model RoleSnapshot {
 }
 
 model VanityLog {
-  id            String    @id @default(uuid())
+  id            String    @id @default(cuid())
   guildId       String
   previousVanity String?
   newVanity     String?
@@ -122,14 +123,14 @@ model VanityLog {
 }
 
 model MusicQueue {
-  id            String    @id @default(uuid())
+  id            String    @id @default(cuid())
   guildId       String    @unique
-  queue         Json      @default("[]")
-  currentTrack  Json?
+  queue         String    @default("[]")   // JSON as string
+  currentTrack  String?                    // JSON as string
   volume        Float     @default(1.0)
   loop          String    @default("none") // none, track, queue
   shuffle       Boolean   @default(false)
-  settings      Json      @default("{}")
+  settings      String    @default("{}")   // JSON as string
   updatedAt     DateTime  @updatedAt
   
   // Relations
@@ -139,7 +140,7 @@ model MusicQueue {
 }
 
 model UserProfile {
-  id              String    @id @default(uuid())
+  id              String    @id @default(cuid())
   guildId         String
   userId          String
   messageCount    Int       @default(0)
@@ -147,7 +148,7 @@ model UserProfile {
   xp              Int       @default(0)
   level           Int       @default(1)
   bio             String?
-  badges          String[]  @default([])
+  badges          String    @default("")  // Comma-separated badges
   lastSeen        DateTime  @default(now())
   optOut          Boolean   @default(false)
   
@@ -160,7 +161,7 @@ model UserProfile {
 }
 
 model Birthday {
-  id        String    @id @default(uuid())
+  id        String    @id @default(cuid())
   guildId   String
   userId    String
   month     Int       // 1-12
@@ -178,7 +179,7 @@ model Birthday {
 }
 
 model AntiNukeWhitelist {
-  id        String    @id @default(uuid())
+  id        String    @id @default(cuid())
   guildId   String
   userId    String
   reason    String?
@@ -188,26 +189,17 @@ model AntiNukeWhitelist {
   @@map("anti_nuke_whitelist")
 }
 
-enum ModerationAction {
-  BAN
-  UNBAN
-  KICK
-  MUTE
-  UNMUTE
-  TIMEOUT
-  UNTIMEOUT
-  WARN
-  NOTE
-  ROLE_ADD
-  ROLE_REMOVE
-  NICKNAME_CHANGE
-  PURGE
-}
+model ExtraOwner {
+  id        String    @id @default(cuid())
+  guildId   String
+  userId    String
+  addedBy   String
+  reason    String?
+  addedAt   DateTime  @default(now())
 
-enum TicketStatus {
-  OPEN
-  PENDING
-  RESOLVED
-  CLOSED
-  ARCHIVED
+  // Relations
+  guild     Guild     @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  @@unique([guildId, userId])
+  @@map("extra_owners")
 }

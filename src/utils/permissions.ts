@@ -9,16 +9,8 @@ export const BOT_OWNER_ID = process.env.BOT_OWNER_ID || '123456789012345678';
  * @returns boolean indicating if user is authorized
  */
 export async function isAuthorizedUser(userId: string, guildOwnerId: string, extraOwners: string[] = []): Promise<boolean> {
-    // In production, this would fetch extra owners from database
-    // For now, we'll simulate with some example IDs
-    const simulatedExtraOwners = [
-        '987654321098765432',
-        '456789012345678901'
-    ];
-
     return userId === BOT_OWNER_ID ||
         userId === guildOwnerId ||
-        simulatedExtraOwners.includes(userId) ||
         extraOwners.includes(userId);
 }
 
@@ -28,12 +20,14 @@ export async function isAuthorizedUser(userId: string, guildOwnerId: string, ext
  * @returns Array of extra owner user IDs
  */
 export async function getExtraOwners(guildId: string): Promise<string[]> {
-    // In production, this would query the database
-    // For now, return simulated data
-    return [
-        '987654321098765432',
-        '456789012345678901'
-    ];
+    try {
+        // For now, return empty array until bot starts properly
+        // Will be updated to use database when user provides Discord token
+        return [];
+    } catch (error) {
+        console.error('Error fetching extra owners:', error);
+        return [];
+    }
 }
 
 /**

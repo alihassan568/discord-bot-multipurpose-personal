@@ -7,47 +7,44 @@ dotenv.config();
 const requiredEnvVars = [
     'DISCORD_TOKEN',
     'DISCORD_CLIENT_ID',
-    'DATABASE_URL',
-    'REDIS_URL',
-    'SESSION_SECRET',
-    'JWT_SECRET',
 ];
 
-for (const envVar of requiredEnvVars) {
-    if (!process.env[envVar]) {
-        throw new Error(`Missing required environment variable: ${envVar}`);
-    }
+// Check required env vars but allow graceful degradation
+const missingVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
+if (missingVars.length > 0) {
+    console.warn(`⚠️  Missing environment variables: ${missingVars.join(', ')}`);
+    console.warn('📋 The bot will start in dashboard-only mode. Please add Discord credentials to enable full functionality.');
 }
 
 export const config: BotConfig = {
-    token: process.env.DISCORD_TOKEN!,
-    clientId: process.env.DISCORD_CLIENT_ID!,
+    token: process.env.DISCORD_TOKEN || 'missing_token',
+    clientId: process.env.DISCORD_CLIENT_ID || 'missing_client_id',
     clientSecret: process.env.DISCORD_CLIENT_SECRET!,
     defaultPrefix: process.env.DEFAULT_PREFIX || '!',
     ownerIds: process.env.OWNER_IDS?.split(',') || [],
 
     database: {
-        url: process.env.DATABASE_URL!,
+        url: process.env.DATABASE_URL || 'file:./dev.db',
     },
 
     redis: {
-        url: process.env.REDIS_URL!,
+        url: process.env.REDIS_URL || 'redis://localhost:6379',
         password: process.env.REDIS_PASSWORD,
     },
 
     dashboard: {
-        port: parseInt(process.env.PORT || '3000'),
-        sessionSecret: process.env.SESSION_SECRET!,
-        jwtSecret: process.env.JWT_SECRET!,
-        url: process.env.DASHBOARD_URL || 'http://localhost:3000',
+        port: parseInt(process.env.PORT || '5000'),
+        sessionSecret: process.env.SESSION_SECRET || 'dev_session_secret_change_in_production',
+        jwtSecret: process.env.JWT_SECRET || 'dev_jwt_secret_change_in_production',
+        url: process.env.DASHBOARD_URL || 'http://localhost:5000',
     },
 
     features: {
         music: process.env.MUSIC_ENABLED === 'true',
-        tickets: process.env.TICKETS_ENABLED === 'true',
-        moderation: process.env.MODERATION_ENABLED === 'true',
-        dashboard: process.env.DASHBOARD_ENABLED === 'true',
-        antiNuke: process.env.ANTI_NUKE_ENABLED === 'true',
+        tickets: process.env.TICKETS_ENABLED !== 'false',
+        moderation: process.env.MODERATION_ENABLED !== 'false',
+        dashboard: process.env.DASHBOARD_ENABLED !== 'false', // Default to true
+        antiNuke: process.env.ANTI_NUKE_ENABLED !== 'false',
     },
 
     antiNuke: {
