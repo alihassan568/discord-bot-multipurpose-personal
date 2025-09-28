@@ -186,10 +186,4 @@ process.on('SIGTERM', async () => {
     process.exit(0);
 });
 
-// Start the bot
-bot.initialize().catch(error => {
-    console.error('Failed to start bot:', error);
-    process.exit(1);
-});
-
 export { bot };

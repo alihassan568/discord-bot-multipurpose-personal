@@ -41,8 +41,8 @@ async function syncGuilds(client: BotClient): Promise<void> {
                 create: {
                     id: guild.id,
                     name: guild.name,
-                    settings: {},
-                    antiNukeSettings: {},
+                    settings: JSON.stringify({}),
+                    antiNukeSettings: JSON.stringify({})
                 },
             });
         }

@@ -29,6 +29,17 @@ model Guild {
   userProfiles      UserProfile[]
   birthdays         Birthday[]
   extraOwners       ExtraOwner[]
+
+  welcomeChannelId  String?
+  welcomeMessage    String?            @default("Welcome {user} to {server}! We're glad to have you.")
+  welcomeEnabled    Boolean            @default(false)
+
+  automodEnabled      Boolean            @default(false)
+  automodLogChannelId String?
+  antiNukeLogChannelId  String?
+  ticketCategoryId      String?
+  ticketLogChannelId    String?
+  ticketSupportRoleId   String?
   
   @@map("guilds")
 }
@@ -151,6 +162,8 @@ model UserProfile {
   badges          String    @default("")  // Comma-separated badges
   lastSeen        DateTime  @default(now())
   optOut          Boolean   @default(false)
+  afkStatus       String?
+  afkSince        DateTime?
   
   // Relations
   guild           Guild     @relation(fields: [guildId], references: [id], onDelete: Cascade)

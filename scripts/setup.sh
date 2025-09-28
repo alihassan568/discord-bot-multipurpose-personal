@@ -87,7 +87,7 @@ setup_database() {
     
     if [ "$1" = "dev" ]; then
         log_info "Starting development database with Docker..."
-        docker-compose -f docker-compose.dev.yml up -d postgres redis
+        docker compose -f docker-compose.dev.yml up -d postgres redis
         
         # Wait for database to be ready
         log_info "Waiting for database to be ready..."
