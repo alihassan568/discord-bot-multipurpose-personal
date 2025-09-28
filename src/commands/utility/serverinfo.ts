@@ -20,21 +20,17 @@ const command: Command = {
         const client = interaction.client as BotClient;
         const guild = interaction.guild;
 
-        // Get guild owner
         const owner = await guild.fetchOwner().catch(() => null);
 
-        // Count members
         const totalMembers = guild.memberCount;
         const members = await guild.members.fetch();
         const humans = members.filter(member => !member.user.bot).size;
         const bots = members.filter(member => member.user.bot).size;
 
-        // Count channels
         const textChannels = guild.channels.cache.filter(ch => ch.type === 0).size;
         const voiceChannels = guild.channels.cache.filter(ch => ch.type === 2).size;
         const categories = guild.channels.cache.filter(ch => ch.type === 4).size;
 
-        // Get verification level
         const verificationLevels = {
             [GuildVerificationLevel.None]: 'None',
             [GuildVerificationLevel.Low]: 'Low',
@@ -43,20 +39,17 @@ const command: Command = {
             [GuildVerificationLevel.VeryHigh]: 'Very High'
         };
 
-        // Get content filter
         const contentFilters = {
             [GuildExplicitContentFilter.Disabled]: 'Disabled',
             [GuildExplicitContentFilter.MembersWithoutRoles]: 'Members without roles',
             [GuildExplicitContentFilter.AllMembers]: 'All members'
         };
 
-        // Get notification settings
         const notificationLevels = {
             [GuildDefaultMessageNotifications.AllMessages]: 'All messages',
             [GuildDefaultMessageNotifications.OnlyMentions]: 'Only @mentions'
         };
 
-        // Get NSFW level
         const nsfwLevels = {
             [GuildNSFWLevel.Default]: 'Default',
             [GuildNSFWLevel.Explicit]: 'Explicit',
@@ -136,12 +129,10 @@ const command: Command = {
             })
             .setTimestamp();
 
-        // Add server banner if available
         if (guild.bannerURL()) {
             embed.setImage(guild.bannerURL()!);
         }
 
-        // Add features if any
         const features = guild.features;
         if (features.length > 0) {
             const featureNames = features.map(feature =>
